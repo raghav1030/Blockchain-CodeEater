@@ -3,6 +3,8 @@
 pragma solidity >= 0.5.0 <= 0.9.0;
 
 contract etherTransfer{
+
+    address payable user = payable(0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2);
     
     function payEther() public payable{
 
@@ -12,8 +14,9 @@ contract etherTransfer{
         return address(this).balance;
     }
 
-
-
+    function transfer() public{
+        user.transfer(1 ether);
+    }
 
 
 }
