@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >= 0.5.0 <= 0.9.0;
+
+    struct Event{
+        address organizer;
+        string name;
+        uint date;
+        uint ticketPrice;
+        uint ticketLeft;
+        uint totalTickets;
+    }
+
+contract EventOrgainzer{
+    
+    
+    mapping (uint => Event) public events;
+    mapping(address => mapping(uint => uint) ) public tickets;
+    uint public newID;
+    
+    function createEvent(string memory name , uint date, uint ticketPrice, uint ticketLeft, uint totalTickets) public {
+        require(date > block.timestamp,"Create an valid Event");
+        require(totalTickets > 0,"There's no ticket to be distributed");
+        events[newID] = Event(msg.sender, name , date , ticketPrice , ticketLeft ,totalTickets );
+        newID ++ ;
+    }
+
+    function buyTickets(uint ID , uint quantity) external payable {
+        require(events[ID].date != 0 , "Event does not exist");
+        require(events[ID].date > block.timestamp ,  "Event has ended");
+        require(events[ID].ticketLeft > 0 , "No tickets left");
+        require(msg.value == (events[ID].ticketPrice*quantity) ,"Not Enough Tokens" );
+        Event storage _event = events[ID];
+        _event.ticketLeft -= quantity;
+        tickets[msg.sender][ID] += quantity ;
+    }
+
+    function transferTickets(uint id , uint quantity , address to) external  {
+        require(tickets[msg.sender][id] >= quantity , "You do not have enough tickets");
+        require(events[id].date != 0, "The event does not exist");
+        require(events[id].date > block.timestamp ,  "Event has ended");
+        tickets[msg.sender][id] -= quantity;
+        tickets[to][id] += quantity;
+
+    }
+
+}
