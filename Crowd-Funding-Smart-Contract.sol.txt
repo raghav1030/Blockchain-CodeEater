@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >= 0.5.0 <= 0.9.0 ;
+
+contract crowdFunding{
+
+mapping(address => uint) public Contributors;
+
+address public manager;
+uint public target ;
+uint public deadline;
+uint public minContribution;
+uint public raisedAmount ;
+uint public noOfContributors;
+
+struct Request{
+    address payable recipient;
+    string description;
+    uint money;
+    bool paymentCompleted;
+    uint numOfVoters;
+    mapping (address => bool ) voters;
+}
+
+mapping  (uint => Request) requests;
+uint public numOfRequests;
+
+constructor(uint _target , uint _deadline  ){
+    manager = msg.sender;
+    deadline = block.timestamp+_deadline;
+    target = _target;
+    minContribution = 100 wei;
+}
+
+function sendETH() public payable{
+    require(msg.value >= minContribution , "not eniugh value to meet with minimum contribution");
+    require(block.timestamp < deadline , "Deadline not met");
+    require(raisedAmount < target , "Target Limit exceeds");
+    
+    
+    if(Contributors[msg.sender] == 0){
+        noOfContributors++;
+    }
+    Contributors[msg.sender] += msg.value;
+}
+
+function getBalance() public view returns(uint){
+    return address(this).balance;
+}
+
+function requestRefund() public payable{
+    require(block.timestamp > deadline && raisedAmount < target) ;
+    uint amount = Contributors[msg.sender];
+    payable(msg.sender).transfer(amount);
+    Contributors[msg.sender] = 0;
+
+}
+
+modifier onlyManager() {
+    require(msg.sender==manager);
+    _;
+}
+
+function request(string memory _description , uint _money, address payable _recipient) public onlyManager payable{
+    Request storage newRequest = requests[numOfRequests];
+    newRequest.description = _description;
+    newRequest.money = _money;
+    newRequest.recipient = _recipient;
+    newRequest.paymentCompleted = false;
+    newRequest.numOfVoters = 0;
+
+}
+
+modifier onlyContributor() {
+    require(Contributors[msg.sender]>0);
+    _;
+}
+
+function vote(uint _requestNum) public onlyContributor {
+    Request storage thisRequest = requests[_requestNum];
+    require(thisRequest.voters[msg.sender] == false , "You've already voted");
+    thisRequest.voters[msg.sender] = true;
+    thisRequest.numOfVoters++;
+
+}
+
+function makePayement(uint _requestNum) public onlyManager{
+    require(raisedAmount >= target);
+    Request storage thisRequest = requests[_requestNum];
+    require(thisRequest.paymentCompleted == false , "Payment has already done");
+    require(thisRequest.numOfVoters > noOfContributors/2);
+    thisRequest.recipient.transfer(thisRequest.money);
+    thisRequest.paymentCompleted = true;
+
+}
+
+}
